@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title> Cabbage Sensor Data Visualization with Flask</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+  <nav> <h1> Cabbage Sensor Data Visualization</h1></nav>
+   
+    <div class="charts">
+        <div class="graph temperatureChart"> <canvas id="temperatureChart"></canvas></div>
+        <div class="graph humidityChart"><canvas id="humidityChart"></canvas></div>
+        <div class="graph waterLevelChart">  <canvas id="waterLevelChart"></canvas></div>
+        <div class="graph phLevelChart"><canvas id="phLevelChart"></canvas></div>
+        <div class="graph lightChart"> <canvas id="lightChart"></canvas></div>
+        <div class="graph nutrientsChart"><canvas id="nutrientsChart"></canvas></div>
+  </div>
+  <div class="text-data">
+        <p id="temperatureValue">Temperature: -- °C</p>
+        <p id="humidityValue">Humidity: -- %</p>
+        <p id="waterLevelValue">Water Level: -- %</p>
+        <p id="phLevelValue">pH Level: --</p>
+        <p id="lightValue">Light: -- Lux</p>
+        <p id="nutrientsValue">Nutrients Level: -- %</p>
+  </div>
+    <script>
+         // Get the context of each canvas for drawing charts
+        const ctxTemperature = document.getElementById('temperatureChart').getContext('2d');
+        const ctxHumidity = document.getElementById('humidityChart').getContext('2d');
+        const ctxWaterLevel = document.getElementById('waterLevelChart').getContext('2d');
+        const ctxPhLevel = document.getElementById('phLevelChart').getContext('2d');
+        const ctxLight = document.getElementById('lightChart').getContext('2d');
+        const ctxNutrients = document.getElementById('nutrientsChart').getContext('2d');
+         
+        // Data object to hold sensor data and time labels
+        const data = {
+            labels: [], // Time labels will go here
+            temperatureData: [],
+            humidityData: [],
+            waterLevelData: [],
+            phLevelData: [],
+            lightData: [],
+            nutrientsData: []
+        };
+
+         // Function to create and configure a chart
+        const createChart = (ctx, label, backgroundColor, borderColor) => {
+            return new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: data.labels,
+                    datasets: [{
+                        label: label,
+                        backgroundColor: backgroundColor,
+                        borderColor: borderColor,
+                        data: [],
+                        // borderColor: 'rgba(192, 132, 252, 1)', // Line color
+                        backgroundColor: 'rgba(107, 33, 168, 0.2)',
+                        fill: true,
+                        tension: 0.4
+                    }]
+                },
+                options: {
+                    scales: {
+                        x: {
+                            type: 'linear',
+                            position: 'bottom',
+                            title: {
+                                display: true,
+                                text: 'Time (s)',
+                                color: '#3b0764'
+                            },
+                            ticks: {
+                                color: '#3b0764'
+                            }
+                        },
+                        y: {
+                            title: {
+                                display: true,
+                                text: 'Value',
+                                color: '#1e293b'
+                            },
+                            ticks: {
+                                color: '#3b0764'
+                            }
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            labels: {
+                                color: '#3b0764'
+                            }
+                        }
+                    }
+                }
+            });
+        };
+         
+        // Create individual charts for each type of data
+        const temperatureChart = createChart(ctxTemperature, 'Temperature (°C)', 'rgba(255, 87, 51, 0.5)', 'rgba(255, 87, 51, 1)');
+        const humidityChart = createChart(ctxHumidity, 'Humidity (%)', 'rgba(80, 200, 120, 0.5)', 'rgba(80, 200, 120, 1)');
+        const waterLevelChart = createChart(ctxWaterLevel, 'Water Level (%)', 'rgba(51, 153, 255, 0.5)', 'rgba(51, 153, 255, 1)');
+        const phLevelChart = createChart(ctxPhLevel, 'pH Level', 'rgba(255, 204, 0, 0.5)', 'rgba(255, 204, 0, 1)');
+        const lightChart = createChart(ctxLight, 'Light (Lux)', 'rgba(255, 0, 255, 0.5)', 'rgba(255, 0, 255, 1)');
+        const nutrientsChart = createChart(ctxNutrients, 'Nutrients Level (%)', 'rgba(0, 204, 204, 0.5)', 'rgba(0, 204, 204, 1)');
+          
+        // Function to fetch sensor data from server
+        function requestData() {
+            fetch('/sensor-data')
+            fetch('/sensor-data')  // Send GET request to the server endpoint
+                .then(response => response.json())  // Parse response as JSON
+                .then(newData => {
+                    const currentTime = data.labels.length > 0 ? data.labels[data.labels.length - 1] + 1 : 0;
+                    // Add new data and time label
+                    data.labels.push(currentTime);
+                    data.temperatureData.push(newData.temperature);
+                    data.humidityData.push(newData.humidity);
+                    data.waterLevelData.push(newData.water_level);
+                    data.phLevelData.push(newData.ph_level);
+                    data.lightData.push(newData.light);
+                    data.nutrientsData.push(newData.nutrients_level);
+
+                    // Limit data arrays to 20 points for smoother viewing
+                    if (data.labels.length > 20) {
+                        data.labels.shift();
+                        data.temperatureData.shift();
+                        data.humidityData.shift();
+                        data.waterLevelData.shift();
+                        data.phLevelData.shift();
+                        data.lightData.shift();
+                        data.nutrientsData.shift();
+                    } 
+                    // Update each chart with new data
+                    temperatureChart.data.datasets[0].data = data.temperatureData;
+                    temperatureChart.update();
+                    humidityChart.data.datasets[0].data = data.humidityData;
+                    humidityChart.update();
+                    waterLevelChart.data.datasets[0].data = data.waterLevelData;
+                    waterLevelChart.update();
+                    phLevelChart.data.datasets[0].data = data.phLevelData;
+                    phLevelChart.update();
+                    lightChart.data.datasets[0].data = data.lightData;
+                    lightChart.update();
+                    nutrientsChart.data.datasets[0].data = data.nutrientsData;
+                    nutrientsChart.update();
+
+                    document.getElementById('temperatureValue').innerText = `Temperature: ${newData.temperature} °C`;
+                    document.getElementById('humidityValue').innerText = `Humidity: ${newData.humidity} %`;
+                    document.getElementById('waterLevelValue').innerText = `Water Level: ${newData.water_level} %`;
+                    document.getElementById('phLevelValue').innerText = `pH Level: ${newData.ph_level}`;
+                    document.getElementById('lightValue').innerText = `Light: ${newData.light} Lux`;
+                    document.getElementById('nutrientsValue').innerText = `Nutrients Level: ${newData.nutrients_level} %`;
+                });
+        }
+
+
+        // Request data every 2 seconds
+        setInterval(requestData, 2000);
+    </script>
+</body>
+</html>
